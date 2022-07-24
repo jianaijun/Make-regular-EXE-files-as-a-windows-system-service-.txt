@@ -76,6 +76,7 @@ winsw
 https://github.com/kohsuke/winsw
 
 NSSM
+https://nssm.cc/
 推荐使用, 只需运行命令即可通过图形界面完成配置, 具体可访问 the Non-Sucking Service Manager.
 
 nssm install <servicename>
