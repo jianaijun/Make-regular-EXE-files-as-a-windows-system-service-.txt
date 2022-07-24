@@ -1,0 +1,89 @@
+Windows 10 封装普通EXE为系统服务
+Windows服务是指Windows操作系统中的一种运行在后台的计算机程序。它在概念上类似于Unix/Linux守护进程，一个标准的Windows服务必须匹配服务控制管理器(SCM)（负责管理Windows服务的组件）的接口规则和协议，处理服务控制管理器(SCM)的启动、停止和暂停消息。
+
+SC
+SC.exe 为Windows系统自带工具，可对Windows系统服务进行创建，查询，启动，停止，删除等操作。
+注意: sc.exe 只支持操作服务控制管理器(SCM)接口规范的系统服务. 一般的网络服务进程如shadowsocks, nginx 等无法作为服务直接启动,需要用到接下来提到的服务封装器.
+
+SrvAny.exe
+SrvAny.exe为Windows Resource Kit中一个特殊组件。可以作为服务封装器来处理预期的服务接口（例如处理service_start，然后响应service_started或service_failed）并允许配置任何可执行文件或脚本作为一个服务。
+
+示例
+这里以shadowsocks为示例:
+
+Step 1
+首先以SrvAny.exe作为封装器创建一个名为”shadowsocks”系统服务框架, 服务暂时还无法使用, 具体的shadowsocks运行配置稍后通过注册表详细配置.
+
+sc create "shadowsocks" binPath=C:\Go\bin\srvany.exe type= own start= auto DisplayName= "shadowsocks"
+
+sc query 查询服务状态为STOPPED.
+
+sc query shadowsocks
+
+SERVICE_NAME: ss_59488
+        TYPE               : 10  WIN32_OWN_PROCESS
+        STATE              : 1  STOPPED
+        WIN32_EXIT_CODE    : 0  (0x0)
+        SERVICE_EXIT_CODE  : 0  (0x0)
+        CHECKPOINT         : 0x0
+        WAIT_HINT          : 0x0
+
+Step 2
+运行regedit, 定位到以下KEY:
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\shadowsocks
+
+右击”shadowsocks”项, “新建”->”项”, 创建Parameters子项.
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Services\Parameters
+
+Step 3
+在Parameters子项下添加”shadowsocks”运行配置:
+
+名称	类型	描叙
+AppDirectory	REG_SZ	运行目录
+Application	REG_SZ	运行exe路径
+AppParameters	REG_SZ	运行exe参数
+当服务控制管理器(SCM) 通知SrvAny.exe 封装器启动时, SrvAny.exe将查找注册表以上配置,启动指定Application .
+
+Step 4
+sc start shadowsocks
+SERVICE_NAME: shadowsocks
+        TYPE               : 10  WIN32_OWN_PROCESS
+        STATE              : 2  START_PENDING
+                                (NOT_STOPPABLE, NOT_PAUSABLE, IGNORES_SHUTDOWN)
+        WIN32_EXIT_CODE    : 0  (0x0)
+        SERVICE_EXIT_CODE  : 0  (0x0)
+        CHECKPOINT         : 0x0
+        WAIT_HINT          : 0x7d0
+        PID                : 31452
+        FLAGS
+sc query shadowsocks
+SERVICE_NAME: shadowsocks
+        TYPE               : 10  WIN32_OWN_PROCESS
+        STATE              : 4  RUNNING
+                                (STOPPABLE, PAUSABLE, ACCEPTS_SHUTDOWN)
+        WIN32_EXIT_CODE    : 0  (0x0)
+        SERVICE_EXIT_CODE  : 0  (0x0)
+        CHECKPOINT         : 0x0
+        WAIT_HINT          : 0x0
+
+其他封装器
+SrvStart
+https://github.com/rozanski/srvstart
+
+winsw
+https://github.com/kohsuke/winsw
+
+NSSM
+推荐使用, 只需运行命令即可通过图形界面完成配置, 具体可访问 the Non-Sucking Service Manager.
+
+nssm install <servicename>
+
+Windows Service Manager (SrvMan)
+http://tools.sysprogs.org/srvman/
+
+Resource
+Windows Resource Kit
+
+Resource_Kit Wiki
